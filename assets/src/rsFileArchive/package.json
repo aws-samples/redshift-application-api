@@ -1,5 +1,0 @@
-{
-  "dependencies": {
-    "lambda-s3-archiver": "^1.3.0"
-  }
-}
