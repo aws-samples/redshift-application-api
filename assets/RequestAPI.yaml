@@ -1,0 +1,43 @@
+---
+swagger: "2.0"
+info:
+  version: "2021-10-06T02:57:22Z"
+  title: "RSDataRequestAPI"
+schemes:
+- "https"
+paths:
+  /product:
+    post:
+      produces:
+      - "application/json"
+      responses:
+        "200":
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/Empty"
+      security:
+      - api_key: []
+      x-amazon-apigateway-integration:
+        httpMethod: "POST"
+        uri: "arn:aws:apigateway:<input_region>:lambda:path/2015-03-31/functions/arn:aws:lambda:<input_region>:<input_accountid>:function:rsRequestHandler/invocations"
+        responses:
+          default:
+            statusCode: "200"
+            responseTemplates:
+              application/json: "{'RequestId' : $input.json('$')}"
+        passthroughBehavior: "when_no_templates"
+        type: "aws"
+securityDefinitions:
+  sigv4:
+    type: "apiKey"
+    name: "Authorization"
+    in: "header"
+    x-amazon-apigateway-authtype: "awsSigv4"
+definitions:
+  Empty:
+    type: "object"
+    title: "Empty Schema"
+x-amazon-apigateway-request-validators:
+  Validate query string parameters and headers:
+    validateRequestParameters: true
+    validateRequestBody: false

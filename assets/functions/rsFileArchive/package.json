@@ -1,0 +1,7 @@
+{
+  "name" : "my_package",
+  "version" : "1.0.0",
+  "dependencies": {
+    "lambda-s3-archiver": "^1.4.0"
+  }
+}

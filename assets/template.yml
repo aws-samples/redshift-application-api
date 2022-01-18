@@ -1,0 +1,297 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: An AWS Serverless Specification template describing your function.
+Parameters:
+  RSDatabaseName:
+    Type: String
+    Default: 'dev'
+    Description: 'Enter your redshift database name'
+  RSClusterID:
+    Type: String
+    Default: 'redshift-cluster-2'
+    Description: 'Enter your redshift cluster ID'
+  RSSecret:
+    Type: String
+    Default: 'arn:aws:secretsmanager:<region>:<youraccount>:secret:<secretname>'
+    Description: 'Enter your redshift secret manager arn where you have stored db credentials. Key names should be username, password, engine, host, port, dbClusterIdentifier'
+  RSUser:
+    Type: String
+    Default: 'admin'
+    Description: 'userid that has access to redshift cluster'
+  RSDataFileS3BucketName:
+    Type: String
+    Default: 'rsuploadbucket03'
+    Description: 'Provide a new bucketname'
+  RSDataFetchQ:
+    Type: String
+    Default: 'select * from rsdataapi.product_detail where sku='
+    Description: 'Enter the SQL query that needs to be mapped to API'
+  RSS3CopyRoleArn:
+    Type: String
+    Default: 'arn:aws:iam::<youraccount>:role/<RoleName>'
+    Description: 'Enter the redshift role arn that is associated with cluster and has permission to write to s3 bucket'
+  RsFileArchiveBucket:
+    Type: String
+    Default: 'rsfiledownload01'
+    Description: 'Enter the s3 bucket name from where you will download the file'
+  RsSourceEmailAddress:
+    Type: String
+    Default: 'xyz@abc.com'
+    Description: 'Enter a valid email address which would be displayed as source of email'
+  RsTargetEmailAddress:
+    Type: String
+    Default: 'xyz@abc.com'
+    Description: 'Enter a valid email address where you would get the status of the request'
+  RsStatusTableName:
+    Type: String
+    Default: 'rsdata_status_check'
+    Description: 'Enter the name you want for your status table in Dynamodb'
+  RsSingedURLExpTime:
+    Type: Number
+    Default: '3600'
+    Description: 'Enter the expiry time of S3 pre-signed URL'
+  RsS3CodeRepo:
+    Type: String
+    Default: rsdatacode
+    Description: 'Enter s3 bucket name for the build files'
+Resources:
+  rsRequestHandler:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: rsRequestHandler
+      Handler: index.handler
+      Runtime: nodejs14.x
+      CodeUri: functions/rsRequestHandler/
+      Description: ''
+      MemorySize: 1536
+      Policies: AmazonDynamoDBFullAccess
+      Timeout: 300
+      Events:
+        RSDataRequestAPI:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RSDataRequestAPI
+            Path: /product
+            Method: POST
+      EventInvokeConfig:
+        MaximumEventAgeInSeconds: 60
+        MaximumRetryAttempts: 2
+        DestinationConfig:
+          OnSuccess:
+            Type: SQS
+            Destination: !Sub ${RSDataRequestQueue.Arn}
+          OnFailure:
+            Type: SQS
+            Destination: !Sub ${RSDataDeadLetterQueue.Arn}
+      Environment:
+        Variables:
+          QUEUE_URL: !Ref RSDataRequestQueue
+  RSDataRequestLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt rsRequestHandler.Arn
+      Action: lambda:InvokeFunction
+      Principal: 'apigateway.amazonaws.com'
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RSDataRequestAPI}/*/POST/product
+  RSDataRequestAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+        Name: RSDataRequestAPI
+        StageName: Production
+        DefinitionBody:
+          'Fn::Transform':
+            Name: 'AWS::Include'
+            Parameters:
+              Location: './RequestAPI.yaml'
+  rsRequestStatusHandler:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: rsRequestStatusHandler
+      Handler: index.handler
+      Runtime: nodejs14.x
+      CodeUri: functions/rsRequestStatusHandler/
+      Description: ''
+      MemorySize: 1536
+      Policies: AmazonDynamoDBFullAccess
+      Timeout: 300
+      Events:
+        RSDataRequestStatusAPI:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RSDataRequestStatusAPI
+            Path: /
+            Method: GET
+      Environment:
+        Variables:
+          STATUS_TABLE_NM: !Ref RsStatusTableName
+  RSDataRequestStatusLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt rsRequestStatusHandler.Arn
+      Action: lambda:InvokeFunction
+      Principal: 'apigateway.amazonaws.com'
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RSDataRequestStatusAPI}/*/GET/
+  RSDataRequestStatusAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+        Name: RSDataRequestStatusAPI
+        StageName: Production
+        DefinitionBody:
+          'Fn::Transform':
+            Name: 'AWS::Include'
+            Parameters:
+              Location: './StatusAPI.yaml'
+  RSDataRequestQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 90
+      QueueName: 'RSDataRequest'
+      RedrivePolicy:
+        deadLetterTargetArn: !Sub ${RSDataDeadLetterQueue.Arn}
+        maxReceiveCount: 10
+  RSDataDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: 'RSDataRequestDLQ'
+      MessageRetentionPeriod: 864000
+      ReceiveMessageWaitTimeSeconds: 0
+      VisibilityTimeout: 500
+  rsDataProcessHandler:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: rsDataProcessHandler
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.8
+      CodeUri: functions/rsDataProcessHandler/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RSDataRequestStatusTable
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref RSSecret
+        - Statement:
+          - Sid: RedshiftAccessPolicy
+            Effect: Allow
+            Action:
+            - redshift-data:*
+            - redshift:GetClusterCredentials
+            Resource:
+              - !Sub arn:aws:redshift:${AWS::Region}:${AWS::AccountId}:dbuser:${RSClusterID}/${RSUser}
+              - !Sub arn:aws:redshift:${AWS::Region}:${AWS::AccountId}:dbname:${RSDatabaseName}/*
+              - !Sub arn:aws:redshift:${AWS::Region}:${AWS::AccountId}:cluster:${RSClusterID}
+      Description: ''
+      MemorySize: 1536
+      Timeout: 90
+      Events:
+        RSDataPollQueueEvent:
+          Type: SQS
+          Properties:
+            Queue: !Sub ${RSDataRequestQueue.Arn}
+      Environment:
+        Variables:
+          QUEUE_URL: !Ref RSDataRequestQueue
+          database_name: !Ref RSDatabaseName
+          progress_status: 'in-progress'
+          rs_cluster_id: !Ref RSClusterID
+          secret_arn: !Ref RSSecret
+          status_table_name: !Ref RsStatusTableName
+          rs_sql: !Ref RSDataFetchQ
+          rs_iam_role_arn: !Ref RSS3CopyRoleArn
+          rs_result_bucket: !Ref RSDataFileS3BucketName
+  rsFileArchive:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: rsFileArchive
+      Handler: index.handler
+      Runtime: nodejs14.x
+      CodeUri: functions/rsFileArchive/
+      Description: ''
+      MemorySize: 1536
+      Timeout: 300
+      Policies: 
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RSDataRequestStatusTable
+        - S3WritePolicy:
+            BucketName: !Ref RsFileArchiveBucket
+        - S3CrudPolicy:
+            BucketName: !Ref RSDataFileS3BucketName
+      Events:
+        RSDataS3Notification:
+          Type: S3
+          Properties:
+            Bucket: !Ref RSS3UploadBucket
+            Events: 's3:ObjectCreated:*'
+            Filter:
+              S3Key:
+                Rules:
+                - Name: 'suffix'
+                  Value: 'manifest'
+      Environment:
+        Variables: 
+          FILE_EXTN: '.zip'
+          TARGET_BUCKET_NAME: !Ref RsFileArchiveBucket
+  rsDataFileArchiveStatus:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: rsDataFileArchiveStatus
+      Handler: index.handler
+      Runtime: nodejs14.x
+      CodeUri: functions/rsDataFileArchiveStatus/
+      Description: ''
+      MemorySize: 1536
+      Timeout: 300
+      Policies: 
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RSDataRequestStatusTable
+        - SESCrudPolicy:
+            IdentityName: !Ref RsTargetEmailAddress
+        - S3ReadPolicy:
+            BucketName: !Ref RsFileArchiveBucket
+      Events:
+        RSDataS3Notification:
+          Type: S3
+          Properties:
+            Bucket: !Ref RSS3DownloadBucket
+            Events: 's3:ObjectCreated:*'
+            Filter:
+              S3Key:
+                Rules:
+                - Name: 'suffix'
+                  Value: 'zip'
+      Environment:
+        Variables: 
+          FILE_EXTN: '.zip'
+          BUCKET_NAME: !Ref RsFileArchiveBucket
+          SOURCE_EMAIL: !Ref RsSourceEmailAddress
+          TARGET_EMAIL: !Ref RsTargetEmailAddress
+          EXPIRY_TIME:  !Ref RsSingedURLExpTime
+          STATUS_TABLE_NM: !Ref RsStatusTableName
+  RSS3UploadBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref RSDataFileS3BucketName
+  RSS3DownloadBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref RsFileArchiveBucket
+  RSDataRequestStatusTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions: 
+        - 
+          AttributeName: "requestid"
+          AttributeType: "S"
+        - 
+          AttributeName: "stepname"
+          AttributeType: "S"
+      KeySchema: 
+        - 
+          AttributeName: "requestid"
+          KeyType: "HASH"
+        - 
+          AttributeName: "stepname"
+          KeyType: "RANGE"
+      ProvisionedThroughput: 
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      TableName: !Ref RsStatusTableName
+

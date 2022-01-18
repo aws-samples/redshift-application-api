@@ -39,7 +39,7 @@ def lambda_handler(event, context):
         msg_body_1 = {}
         msg_body_1['requestid'] = requestid
         msg_body_1['stepname'] = 'Query Request Recieved - Redshift'
-        msg_body_1['timestamp'] = int(time.time())
+        msg_body_1['timestamp'] = int(time.time()*1000)
         msg_body_1['status'] = 'Success'
         msg_body_1['message'] = ''
         rsdata = boto3.client('redshift-data')
@@ -57,7 +57,7 @@ def lambda_handler(event, context):
             msg_body_1 = {}
             msg_body_1['requestid'] = requestid
             msg_body_1['stepname'] = 'Query Request Processed - Redshift'
-            msg_body_1['timestamp'] = int(time.time())
+            msg_body_1['timestamp'] = int(time.time()*1000)
             msg_body_1['status'] = 'Success'
             msg_body_1['message'] = ''
             load_status(msg_body_1)
@@ -67,7 +67,7 @@ def lambda_handler(event, context):
             msg_body_1 = {}
             msg_body_1['requestid'] = requestid
             msg_body_1['stepname'] = 'Query Response Recieved - Redshift'
-            msg_body_1['timestamp'] = int(time.time())
+            msg_body_1['timestamp'] = int(time.time()*1000)
             msg_body_1['status'] = 'Error'
             msg_body_1['message'] = e
             load_status(msg_body_1)
