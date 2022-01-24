@@ -10,20 +10,22 @@
 - An [Amazon Redshift cluster](https://docs.aws.amazon.com/redshift/latest/gsg/rs-gsg-launch-sample-cluster.html) with a database and table
 - Run the following DDL on the Amazon Redshift cluster using query editor to create the schema and table:
 
-- create schema rsdataapi;
-
-
-- create table rsdataapi.product_detail(
+` create schema rsdataapi;`
+```
+create table rsdataapi.product_detail(
  sku varchar(20)
 ,product_id int 
 ,product_name varchar(50)
 ,product_description varchar(50)
 );
+```
 
+```
+Insert into rsdataapi.product_detail values ('FLOWER12',12345,'Flowers - Rose','Flowers-Rose');
+Insert into rsdataapi.product_detail values ('FLOWER13',12346,'Flowers - Jasmine','Flowers-Jasmine');
+Insert into rsdataapi.product_detail values ('FLOWER14',12347,'Flowers - Other','Flowers-Other');
+```
 
-- Insert into rsdataapi.product_detail values ('FLOWER12',12345,'Flowers - Rose','Flowers-Rose');
-- Insert into rsdataapi.product_detail values ('FLOWER13',12346,'Flowers - Jasmine','Flowers-Jasmine');
-- Insert into rsdataapi.product_detail values ('FLOWER14',12347,'Flowers - Other','Flowers-Other');
 
 
 - Secrets Manager [configured](https://docs.aws.amazon.com/secretsmanager/latest/userguide/tutorials_basic.html) to store Amazon Redshift credentials 
@@ -32,22 +34,27 @@
 
 ## To Deploy the sample application run the following steps:
 1.	Clone the repository and download the sample source code to your environment where AWS SAM is installed:
-git clone https://gitlab.aws.dev/jeesri/redshift-application-api.git
+`git clone https://gitlab.aws.dev/jeesri/redshift-application-api.git`
 
 2.	Change into the project directory containing the template.yaml file:
+```
 cd aws-samples/redshift-application-api/assets
 export PATH=$PATH:/usr/local/opt/python@3.8/bin  
+```
 
 3.	Change the API yaml file to update your AWS account number and the region where you will deploy this solution
 
-- sed -i ‘’ “s/<input_region>/us-east-1/g” *API.yaml
-- sed -i ‘’ “s/<input_accountid>/<provide your AWS account id without dashes>/g” *API.yaml
+```
+sed -i ‘’ “s/<input_region>/us-east-1/g” *API.yaml
+sed -i ‘’ “s/<input_accountid>/<provide your AWS account id without dashes>/g” *API.yaml
+```
+
 
 
 4.	Build the application using AWS SAM:
-- sam build
+`sam build`
 
-5. sam deploy -g
+5. `sam deploy -g`
 
 | Parameter | Description |
 | ------ | ------ |
