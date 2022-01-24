@@ -1,16 +1,15 @@
 ## AWS Redshift Data API
 ## Perquisites
 
-Deploying the solution
+## You need the following perquisites to deploy the example application:
+- [AWS account](https://aws.amazon.com/free/?trk=ps_a134p000003yBfsAAE&trkCampaign=acq_paid_search_brand&sc_channel=ps&sc_campaign=acquisition_US&sc_publisher=google&sc_category=core&sc_country=US&sc_geo=NAMER&sc_outcome=acq&sc_detail=%2Baws%20%2Baccount&sc_content=Account_bmm&sc_segment=438195700994&sc_medium=ACQ-P|PS-GO|Brand|Desktop|SU|AWS|Core|US|EN|Text&s_kwcid=AL!4422!3!438195700994!b!!g!!%2Baws%20%2Baccount&ef_id=Cj0KCQjwsuP5BRCoARIsAPtX_wEmxImXtbdvL3n4ntAafj32KMc_sXL9Z-o8FyXVQzPk7w__h2FMje0aAhOFEALw_wcB:G:s&s_kwcid=AL!4422!3!438195700994!b!!g!!%2Baws%20%2Baccount&all-free-tier.sort-by=item.additionalFields.SortRank&all-free-tier.sort-order=asc)
+- [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
+- [Python 3.9](https://www.python.org/downloads/)
+- [Node 17.3](https://www.npmjs.com/package/homebrew)
+- [An AWS Identity and Access Management (IAM)](http://aws.amazon.com/iam) role with appropriate access.	
+- An [Amazon Redshift cluster](https://docs.aws.amazon.com/redshift/latest/gsg/rs-gsg-launch-sample-cluster.html) with a database and table
+- Run the following DDL on the Amazon Redshift cluster using query editor to create the schema and table:
 
-You need the following perquisites to deploy the example application:
-•	AWS account.
-•	AWS SAM CLI.
-•	Python 3.9.
-•	Node 17.3.
-•	An AWS Identity and Access Management (IAM) role with appropriate access.
-•	An Amazon Redshift cluster with a database and table
-•	Run the following DDL on the Amazon Redshift cluster using query editor to create the schema and table:
 create schema rsdataapi;
 
 create table rsdataapi.product_detail(
@@ -25,9 +24,8 @@ Insert into rsdataapi.product_detail values ('FLOWER13',12346,'Flowers - Jasmine
 Insert into rsdataapi.product_detail values ('FLOWER14',12347,'Flowers - Other','Flowers-Other');
 
 
-- Secrets Manager configured to store Amazon Redshift credentials 
-- Amazon SES configured with an email address or distribution list to send and receive status updates
-- Amazon SES configured with an email address or distribution list to send and receive status updates
+- Secrets Manager [configured](https://docs.aws.amazon.com/secretsmanager/latest/userguide/tutorials_basic.html) to store Amazon Redshift credentials 
+- Amazon SES [configured](https://docs.aws.amazon.com/ses/latest/DeveloperGuide/send-email-set-up.html) with an email address or distribution list to send and receive status updates
 
 
 ## To Deploy the sample application run the following steps:
