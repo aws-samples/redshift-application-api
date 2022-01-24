@@ -119,7 +119,7 @@ Resources:
           Type: Api
           Properties:
             RestApiId: !Ref RSDataRequestStatusAPI
-            Path: /
+            Path: /product
             Method: GET
       Environment:
         Variables:
@@ -130,7 +130,7 @@ Resources:
       FunctionName: !GetAtt rsRequestStatusHandler.Arn
       Action: lambda:InvokeFunction
       Principal: 'apigateway.amazonaws.com'
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RSDataRequestStatusAPI}/*/GET/
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RSDataRequestStatusAPI}/*/GET/product
   RSDataRequestStatusAPI:
     Type: AWS::Serverless::Api
     Properties:
