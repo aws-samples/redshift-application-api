@@ -30,7 +30,7 @@ Insert into rsdataapi.product_detail values ('FLOWER14',12347,'Flowers - Other',
 
 ## To Deploy the sample application run the following steps:
 1.	Clone the repository and download the sample source code to your environment where AWS SAM is installed:
-git clone https://github.com/aws-samples/redshift-application-api
+git clone https://gitlab.aws.dev/jeesri/redshift-application-api.git
 
 2.	Change into the project directory containing the template.yaml file:
 cd aws-samples/redshift-application-api/assets
