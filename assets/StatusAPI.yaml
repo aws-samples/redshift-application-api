@@ -4,11 +4,10 @@ info:
   description: "This API provides the status of the request"
   version: "2022-01-12T19:52:22Z"
   title: "RSDataRequestStatusAPI"
-basePath: "/Production"
 schemes:
 - "https"
 paths:
-  /:
+  /product:
     get:
       consumes:
       - "application/json"
@@ -34,7 +33,7 @@ paths:
         \ headers"
       x-amazon-apigateway-integration:
         httpMethod: "POST"
-        uri: "arn:aws:apigateway:<input_region>:lambda:path/2015-03-31/functions/arn:aws:<input_region>:<input_accountid>:function:rsRequestStatusHandler/invocations"
+        uri: "arn:aws:apigateway:<input_region>:lambda:path/2015-03-31/functions/arn:aws:lambda:<input_region>:<input_accountid>:function:rsRequestStatusHandler/invocations"
         responses:
           default:
             statusCode: "200"
