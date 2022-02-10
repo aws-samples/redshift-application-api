@@ -83,6 +83,4 @@ This sample code is made available under a modified MIT license. See the LICENSE
 ## Outline
 ## Questions and contact
 
-Adding a new line for code commit.
-
-For questions on AWS Bookstore Demo App, or to contact the team, please leave a comment on GitHub.
+For questions on Redshift application API, or to contact the team, please leave a comment on GitHub.
